@@ -3,7 +3,6 @@ import openai
 import re
 from urllib.parse import urlencode
 import base64
-from db import save_verdict  # Replace with a mock if you don't use a real DB yet
 
 # ✅ Groq API credentials
 openai.api_key = "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"
@@ -51,6 +50,10 @@ def extract_percentages(verdict_text, user1_name, user2_name):
 
     return None, None
 
+# ✅ Skip DB: mock save_verdict
+def save_verdict(*args, **kwargs):
+    print("✅ Verdict saved (mocked, no DB)")
+
 # 📤 WhatsApp link
 def generate_whatsapp_link(phone, msg):
     phone = phone.replace("+", "").replace("-", "").replace(" ", "")
@@ -94,8 +97,7 @@ def step_1(theme):
             "user2_phone": user2_phone,
         })
 
-        # ✅ Use your live deployed URL here
-        BASE_URL = "https://fairfight.streamlit.app"
+        BASE_URL = "https://fairfight.streamlit.app"  # ✅ Your deployed URL
         share_link = f"{BASE_URL}/?{params}"
 
         st.success("✅ Link generated!")
@@ -157,7 +159,7 @@ def main():
     st.title("🤖 FairFight AI")
     st.caption("Because every conflict deserves a fair verdict.")
 
-    query = st.experimental_get_query_params()
+    query = st.query_params
     step = query.get("step", ["1"])[0]
 
     if step == "2":
