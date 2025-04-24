@@ -3,7 +3,7 @@ import openai
 import re
 from urllib.parse import urlencode
 import base64
-from db import save_verdict  # Make sure this file exists or mock it for testing
+from db import save_verdict  # Replace with a mock if you don't use a real DB yet
 
 # ✅ Groq API credentials
 openai.api_key = "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"
@@ -94,8 +94,8 @@ def step_1(theme):
             "user2_phone": user2_phone,
         })
 
-        # ✅ Use Streamlit Secrets for dynamic BASE URL
-        BASE_URL = st.secrets.get("BASE_URL", "http://localhost:8501")
+        # ✅ Use your live deployed URL here
+        BASE_URL = "https://fairfight.streamlit.app"
         share_link = f"{BASE_URL}/?{params}"
 
         st.success("✅ Link generated!")
