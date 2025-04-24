@@ -3,10 +3,14 @@ import openai
 import re
 from urllib.parse import urlencode
 import base64
-from db import save_verdict
+
+# Optional: Save verdict (implement if using DB)
+def save_verdict(theme, user1_name, user2_name, user1_input, user2_input, verdict, user1_email=None, user2_email=None, user1_phone=None, user2_phone=None):
+    # Placeholder for saving data (could be Firebase, Supabase, SQLite, etc.)
+    pass
 
 # ✅ Groq API credentials
-openai.api_key = "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"
+openai.api_key = st.secrets["GROQ_API_KEY"]
 openai.api_base = "https://api.groq.com/openai/v1"
 
 # 🧠 Analyze conflict
@@ -73,7 +77,6 @@ def step_1(theme):
             st.warning("⚠️ Please fill all required fields.")
             return
 
-        # ✅ Encode user1_input in base64
         encoded_input = base64.urlsafe_b64encode(user1_input.encode()).decode()
 
         params = urlencode({
@@ -88,7 +91,7 @@ def step_1(theme):
             "user2_phone": user2_phone,
         })
 
-        share_link = f"http://localhost:8501/?{params}"
+        share_link = f"{st.request.url_root}?{params}"
         st.success("✅ Link generated!")
 
         msg = f"""Hello {user2_name},
@@ -114,7 +117,6 @@ def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
 
     try:
-        # ✅ Decode base64 input
         user1_input_decoded = base64.urlsafe_b64decode(data['user1_input'].encode()).decode()
     except Exception:
         user1_input_decoded = "[Error decoding User 1 input]"
@@ -143,7 +145,7 @@ def step_2(data):
                 st.progress(p1 / 100.0, f"{data['user1_name']}: {p1}%")
                 st.progress(p2 / 100.0, f"{data['user2_name']}: {p2}%")
 
-# 🏠 Main entry point
+# 🏠 Main
 def main():
     st.set_page_config(page_title="FairFight AI", page_icon="⚖️")
     st.title("🤖 FairFight AI")
