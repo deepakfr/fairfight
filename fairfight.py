@@ -3,7 +3,7 @@ import openai
 import re
 from urllib.parse import urlencode
 import base64
-from db import save_verdict  # Make sure this file exists or mock it for testing
+from db import save_verdict
 
 # ✅ Groq API credentials
 openai.api_key = "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"
@@ -37,13 +37,14 @@ def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
     except Exception as e:
         return f"❌ Error: {e}"
 
-# 📊 Extract win % with name matching
+# 📊 Extract win % with name mapping
 def extract_percentages(verdict_text, user1_name, user2_name):
     pattern = rf"{re.escape(user1_name)}\s*[:\-]?\s*(\d{{1,3}})%.*?{re.escape(user2_name)}\s*[:\-]?\s*(\d{{1,3}})%"
     match = re.search(pattern, verdict_text, re.IGNORECASE)
     if match:
         return int(match.group(1)), int(match.group(2))
 
+    # Try reversed order
     pattern_rev = rf"{re.escape(user2_name)}\s*[:\-]?\s*(\d{{1,3}})%.*?{re.escape(user1_name)}\s*[:\-]?\s*(\d{{1,3}})%"
     match = re.search(pattern_rev, verdict_text, re.IGNORECASE)
     if match:
@@ -80,6 +81,7 @@ def step_1(theme):
             st.warning("⚠️ Please fill all required fields.")
             return
 
+        # ✅ Encode user1_input in base64
         encoded_input = base64.urlsafe_b64encode(user1_input.encode()).decode()
 
         params = urlencode({
@@ -94,10 +96,7 @@ def step_1(theme):
             "user2_phone": user2_phone,
         })
 
-        # ✅ Use Streamlit Secrets for dynamic BASE URL
-        BASE_URL = st.secrets.get("BASE_URL", "http://localhost:8501")
-        share_link = f"{BASE_URL}/?{params}"
-
+        share_link = f"http://localhost:8501/?{params}"
         st.success("✅ Link generated!")
 
         msg = f"""Hello {user2_name},
@@ -123,6 +122,7 @@ def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
 
     try:
+        # ✅ Decode base64 input
         user1_input_decoded = base64.urlsafe_b64decode(data['user1_input'].encode()).decode()
     except Exception:
         user1_input_decoded = "[Error decoding User 1 input]"
@@ -145,6 +145,7 @@ def step_2(data):
             st.markdown("### 🧑‍⚖️ JudgeBot says:")
             st.markdown(verdict)
 
+            # ✅ Corrected percentage extraction
             p1, p2 = extract_percentages(verdict, data['user1_name'], data['user2_name'])
             if p1 is not None and p2 is not None:
                 st.markdown("### 🏆 Victory Margin")
