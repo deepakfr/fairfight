@@ -1,12 +1,13 @@
 import psycopg2
-from psycopg2.extras import RealDictCursor
+import streamlit as st
 
+# 🔐 Load DB config from Streamlit secrets
 DB_CONFIG = {
-    "dbname": "postgres",
-    "user": "postgres",
-    "password": "1234",
-    "host": "localhost",
-    "port": "5432"
+    "host": st.secrets.get("DB_HOST", "localhost"),
+    "port": st.secrets.get("DB_PORT", "5432"),
+    "dbname": st.secrets.get("DB_NAME", "postgres"),
+    "user": st.secrets.get("DB_USER", "postgres"),
+    "password": st.secrets.get("DB_PASSWORD", "1234"),
 }
 
 def get_connection():
@@ -16,8 +17,7 @@ def save_verdict(theme, user1_name, user2_name, user1_input, user2_input, verdic
                  user1_email=None, user2_email=None, user1_phone=None, user2_phone=None):
     conn = get_connection()
     cur = conn.cursor()
-
-    cur.execute('''
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS verdicts (
             id SERIAL PRIMARY KEY,
             theme TEXT,
@@ -30,28 +30,17 @@ def save_verdict(theme, user1_name, user2_name, user1_input, user2_input, verdic
             user2_email TEXT,
             user1_phone TEXT,
             user2_phone TEXT,
-            created_at TIMESTAMPTZ DEFAULT NOW()
-        );
-    ''')
-
-    cur.execute('''
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("""
         INSERT INTO verdicts (
             theme, user1_name, user2_name, user1_input, user2_input, verdict,
             user1_email, user2_email, user1_phone, user2_phone
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    ''', (theme, user1_name, user2_name, user1_input, user2_input, verdict,
+    """, (theme, user1_name, user2_name, user1_input, user2_input, verdict,
           user1_email, user2_email, user1_phone, user2_phone))
-
     conn.commit()
     cur.close()
     conn.close()
-
-def get_recent_verdicts(limit=10):
-    conn = get_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("SELECT * FROM verdicts ORDER BY created_at DESC LIMIT %s", (limit,))
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    return rows
