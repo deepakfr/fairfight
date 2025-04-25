@@ -1,12 +1,32 @@
 import streamlit as st
 import openai
 import re
-from urllib.parse import urlencode
 import base64
+import json
+from urllib.parse import urlencode
+from datetime import datetime
 
 # ✅ Groq API credentials
 openai.api_key = "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"
 openai.api_base = "https://api.groq.com/openai/v1"
+
+# ✅ Save verdicts to local JSON file (no database needed)
+def save_verdict(theme, user1_name, user2_name, user1_input, user2_input, verdict, **kwargs):
+    record = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "theme": theme,
+        "user1_name": user1_name,
+        "user2_name": user2_name,
+        "user1_input": user1_input,
+        "user2_input": user2_input,
+        "verdict": verdict,
+        "meta": kwargs
+    }
+    try:
+        with open("verdicts.json", "a") as f:
+            f.write(json.dumps(record) + "\n")
+    except Exception as e:
+        print("Error saving verdict:", e)
 
 # 🧠 Analyze conflict
 def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
@@ -49,10 +69,6 @@ def extract_percentages(verdict_text, user1_name, user2_name):
         return int(match.group(2)), int(match.group(1))
 
     return None, None
-
-# ✅ Skip DB: mock save_verdict
-def save_verdict(*args, **kwargs):
-    print("✅ Verdict saved (mocked, no DB)")
 
 # 📤 WhatsApp link
 def generate_whatsapp_link(phone, msg):
@@ -97,7 +113,8 @@ def step_1(theme):
             "user2_phone": user2_phone,
         })
 
-        BASE_URL = "https://fairfight.streamlit.app"  # ✅ Your deployed URL
+        # ✅ Update this after deployment
+        BASE_URL = "https://fairfight.streamlit.app"
         share_link = f"{BASE_URL}/?{params}"
 
         st.success("✅ Link generated!")
@@ -137,12 +154,14 @@ def step_2(data):
     if st.button("🧠 Get Verdict from JudgeBot"):
         with st.spinner("JudgeBot is thinking..."):
             verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
+
             save_verdict(
                 data['theme'], data['user1_name'], data['user2_name'],
                 user1_input_decoded, user2_input, verdict,
                 user1_email=data.get('user1_email'), user2_email=data.get('user2_email'),
                 user1_phone=data.get('user1_phone'), user2_phone=data.get('user2_phone')
             )
+
             st.success("✅ Verdict delivered!")
             st.markdown("### 🧑‍⚖️ JudgeBot says:")
             st.markdown(verdict)
@@ -159,7 +178,7 @@ def main():
     st.title("🤖 FairFight AI")
     st.caption("Because every conflict deserves a fair verdict.")
 
-    query = st.query_params
+    query = st.experimental_get_query_params()
     step = query.get("step", ["1"])[0]
 
     if step == "2":
