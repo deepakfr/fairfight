@@ -178,7 +178,7 @@ def main():
     st.title("🤖 FairFight AI")
     st.caption("Because every conflict deserves a fair verdict.")
 
-    query = st.query_params()
+    query = st.query_params
     step = query.get("step", ["1"])[0]
 
     if step == "2":
