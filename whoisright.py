@@ -103,7 +103,7 @@ def step_1(theme):
 
         params = urlencode({
             "step": "2",
-            "theme": theme,
+            "theme": theme.split()[0],
             "user1_name": user1_name,
             "user2_name": user2_name,
             "user1_input": encoded_input,
@@ -111,7 +111,7 @@ def step_1(theme):
             "user2_email": user2_email,
             "user1_phone": user1_phone,
             "user2_phone": user2_phone,
-        })
+        }, safe='=')
 
         # ✅ Update this after deployment
         BASE_URL = "https://fairfight.streamlit.app"
@@ -136,6 +136,7 @@ Click to share your version and get JudgeBot's verdict:
             st.markdown(f"[📧 Email to {user2_name}]({generate_mailto_link(user2_email, 'FairFight Conflict', msg)})", unsafe_allow_html=True)
         if user2_phone:
             st.markdown(f"[📲 WhatsApp to {user2_name}]({generate_whatsapp_link(user2_phone, msg)})", unsafe_allow_html=True)
+
 
 # 🧾 Step 2 – User 2 responds
 def step_2(data):
