@@ -142,6 +142,40 @@ Click to share your version and get JudgeBot's verdict:
             st.markdown(f"[📲 WhatsApp to {user2_name}]({whatsapp_link})", unsafe_allow_html=True)
 
 
+# 🧾 Step 2 – User 2 responds
+def step_2(data):
+    st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
+
+    user1_input_decoded = base64.urlsafe_b64decode(data['user1_input']).decode()
+
+    st.markdown(f"**🧑 {data['user1_name']} said:**")
+    st.info(user1_input_decoded)
+
+    user2_input = st.text_area(f"👩 {data['user2_name']}, your version")
+
+    if st.button("🧠 Get Verdict from JudgeBot"):
+        with st.spinner("JudgeBot is thinking..."):
+            verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
+
+            save_verdict(
+                data['theme'], data['user1_name'], data['user2_name'],
+                user1_input_decoded, user2_input, verdict,
+                user1_email=data.get('user1_email'), user2_email=data.get('user2_email'),
+                user1_phone=data.get('user1_phone'), user2_phone=data.get('user2_phone')
+            )
+
+            st.success("✅ Verdict delivered!")
+            st.markdown("### 🧑‍⚖️ JudgeBot says:")
+            st.markdown(verdict)
+
+            p1, p2 = extract_percentages(verdict, data['user1_name'], data['user2_name'])
+            if p1 is not None and p2 is not None:
+                st.markdown("### 🏆 Victory Margin")
+                st.progress(p1 / 100.0, f"{data['user1_name']}: {p1}%")
+                st.progress(p2 / 100.0, f"{data['user2_name']}: {p2}%")
+
+
+
 # 🏠 Main entry point
 def main():
     st.set_page_config(page_title="FairFight AI", page_icon="⚖️")
