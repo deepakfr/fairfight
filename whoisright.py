@@ -82,8 +82,8 @@ def step_1(theme):
     user1_input = st.text_area("🧑 Describe your version")
 
     if st.button("📤 Generate link and send to User 2"):
-        if not all([user1_name, user1_email, user2_name, user2_email, user1_input]):
-            st.warning("⚠️ Please fill all required fields.")
+        if not all([user1_name.strip(), user1_email.strip(), user2_name.strip(), user2_email.strip(), user1_input.strip()]):
+            st.warning("⚠️ Please fill all required fields before generating the link.")
             return
 
         raw_encoded_input = base64.urlsafe_b64encode(user1_input.encode()).decode()
@@ -104,7 +104,7 @@ def step_1(theme):
         BASE_URL = "https://fairfight.streamlit.app"
         share_link = f"{BASE_URL}/?{params}"
 
-        st.success("✅ Link generated!")
+        st.success("✅ Link generated successfully!")
         st.code(share_link)
 
         msg = f"""Hello {user2_name},
