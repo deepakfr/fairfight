@@ -86,7 +86,8 @@ def step_1(theme):
             st.warning("⚠️ Please fill all required fields.")
             return
 
-        encoded_input = base64.urlsafe_b64encode(user1_input.encode()).decode()
+        raw_encoded_input = base64.urlsafe_b64encode(user1_input.encode()).decode()
+        encoded_input = urllib.parse.quote(raw_encoded_input)
 
         params = urlencode({
             "step": "2",
@@ -104,6 +105,8 @@ def step_1(theme):
         share_link = f"{BASE_URL}/?{params}"
 
         st.success("✅ Link generated!")
+        st.code(share_link)
+
         msg = f"""Hello {user2_name},
 
 {user1_name} has submitted a conflict on FairFight AI.
@@ -113,8 +116,6 @@ Click to share your version and get JudgeBot's verdict:
 {share_link}
 
 🤖 FairFight AI"""
-
-        st.code(share_link)
 
         if user2_email:
             email_link = generate_mailto_link(user2_email, 'FairFight Conflict', msg)
@@ -128,8 +129,8 @@ Click to share your version and get JudgeBot's verdict:
 def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
 
-    # Safe Base64 decoding
     def safe_base64_decode(encoded_str):
+        encoded_str = urllib.parse.unquote(encoded_str)
         padding_needed = 4 - (len(encoded_str) % 4)
         if padding_needed and padding_needed != 4:
             encoded_str += "=" * padding_needed
