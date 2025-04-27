@@ -4,13 +4,14 @@ import re
 import base64
 import json
 from urllib.parse import urlencode
+import urllib.parse
 from datetime import datetime
 
 # ✅ Groq API credentials
 openai.api_key = "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"
 openai.api_base = "https://api.groq.com/openai/v1"
 
-# ✅ Save verdicts to local JSON file (no database needed)
+# ✅ Save verdicts to local JSON file
 def save_verdict(theme, user1_name, user2_name, user1_input, user2_input, verdict, **kwargs):
     record = {
         "timestamp": datetime.utcnow().isoformat(),
@@ -56,31 +57,17 @@ def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
     except Exception as e:
         return f"❌ Error: {e}"
 
-# 📊 Extract win % with name matching
-def extract_percentages(verdict_text, user1_name, user2_name):
-    pattern = rf"{re.escape(user1_name)}\s*[:\-]?\s*(\d{{1,3}})%.*?{re.escape(user2_name)}\s*[:\-]?\s*(\d{{1,3}})%"
-    match = re.search(pattern, verdict_text, re.IGNORECASE)
-    if match:
-        return int(match.group(1)), int(match.group(2))
-
-    pattern_rev = rf"{re.escape(user2_name)}\s*[:\-]?\s*(\d{{1,3}})%.*?{re.escape(user1_name)}\s*[:\-]?\s*(\d{{1,3}})%"
-    match = re.search(pattern_rev, verdict_text, re.IGNORECASE)
-    if match:
-        return int(match.group(2)), int(match.group(1))
-
-    return None, None
+# 📧 Email link
+def generate_mailto_link(email, subject, body):
+    subject = urllib.parse.quote(subject)
+    body = urllib.parse.quote(body)
+    return f"mailto:{email}?subject={subject}&body={body}"
 
 # 📤 WhatsApp link
 def generate_whatsapp_link(phone, msg):
     phone = phone.replace("+", "").replace("-", "").replace(" ", "")
-    msg = msg.replace(" ", "%20").replace("\n", "%0A")
+    msg = urllib.parse.quote(msg)
     return f"https://wa.me/{phone}?text={msg}"
-
-# 📧 Email link
-def generate_mailto_link(email, subject, body):
-    subject = subject.replace(" ", "%20")
-    body = body.replace(" ", "%20").replace("\n", "%0A")
-    return f"mailto:{email}?subject={subject}&body={body}"
 
 # 🔁 Step 1 – User 1 inputs
 def step_1(theme):
@@ -103,7 +90,7 @@ def step_1(theme):
 
         params = urlencode({
             "step": "2",
-            "theme": theme,
+            "theme": theme.split()[0],
             "user1_name": user1_name,
             "user2_name": user2_name,
             "user1_input": encoded_input,
@@ -113,38 +100,35 @@ def step_1(theme):
             "user2_phone": user2_phone,
         })
 
-        # ✅ Update this after deployment
         BASE_URL = "https://fairfight.streamlit.app"
         share_link = f"{BASE_URL}/?{params}"
 
         st.success("✅ Link generated!")
-
         msg = f"""Hello {user2_name},
 
 {user1_name} has submitted a conflict on FairFight AI.
 
 Click to share your version and get JudgeBot's verdict:
 
-🔗 {share_link}
+{share_link}
 
 🤖 FairFight AI"""
 
-        st.markdown("### 🔗 Share this link:")
         st.code(share_link)
 
         if user2_email:
-            st.markdown(f"[📧 Email to {user2_name}]({generate_mailto_link(user2_email, 'FairFight Conflict', msg)})", unsafe_allow_html=True)
+            email_link = generate_mailto_link(user2_email, 'FairFight Conflict', msg)
+            st.markdown(f"[📧 Email to {user2_name}]({email_link})", unsafe_allow_html=True)
+
         if user2_phone:
-            st.markdown(f"[📲 WhatsApp to {user2_name}]({generate_whatsapp_link(user2_phone, msg)})", unsafe_allow_html=True)
+            whatsapp_link = generate_whatsapp_link(user2_phone, msg)
+            st.markdown(f"[📲 WhatsApp to {user2_name}]({whatsapp_link})", unsafe_allow_html=True)
 
 # 🧾 Step 2 – User 2 responds
 def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
 
-    try:
-        user1_input_decoded = base64.urlsafe_b64decode(data['user1_input'].encode()).decode()
-    except Exception:
-        user1_input_decoded = "[Error decoding User 1 input]"
+    user1_input_decoded = base64.urlsafe_b64decode(data['user1_input']).decode()
 
     st.markdown(f"**🧑 {data['user1_name']} said:**")
     st.info(user1_input_decoded)
@@ -152,25 +136,10 @@ def step_2(data):
     user2_input = st.text_area(f"👩 {data['user2_name']}, your version")
 
     if st.button("🧠 Get Verdict from JudgeBot"):
-        with st.spinner("JudgeBot is thinking..."):
-            verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
-
-            save_verdict(
-                data['theme'], data['user1_name'], data['user2_name'],
-                user1_input_decoded, user2_input, verdict,
-                user1_email=data.get('user1_email'), user2_email=data.get('user2_email'),
-                user1_phone=data.get('user1_phone'), user2_phone=data.get('user2_phone')
-            )
-
-            st.success("✅ Verdict delivered!")
-            st.markdown("### 🧑‍⚖️ JudgeBot says:")
-            st.markdown(verdict)
-
-            p1, p2 = extract_percentages(verdict, data['user1_name'], data['user2_name'])
-            if p1 is not None and p2 is not None:
-                st.markdown("### 🏆 Victory Margin")
-                st.progress(p1 / 100.0, f"{data['user1_name']}: {p1}%")
-                st.progress(p2 / 100.0, f"{data['user2_name']}: {p2}%")
+        verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
+        save_verdict(data['theme'], data['user1_name'], data['user2_name'], user1_input_decoded, user2_input, verdict)
+        st.success("✅ Verdict delivered!")
+        st.markdown(verdict)
 
 # 🏠 Main entry point
 def main():
