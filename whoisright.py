@@ -143,6 +143,7 @@ Click to share your version and get JudgeBot's verdict:
 
 
 # 🧾 Step 2 – User 2 responds
+# 🧾 Step 2 – User 2 responds
 def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
 
@@ -175,7 +176,6 @@ def step_2(data):
                 st.progress(p2 / 100.0, f"{data['user2_name']}: {p2}%")
 
 
-
 # 🏠 Main entry point
 def main():
     st.set_page_config(page_title="FairFight AI", page_icon="⚖️")
@@ -192,6 +192,7 @@ def main():
     else:
         theme = st.selectbox("Choose a conflict type:", ["Couple 💔", "Friends 🎭", "Pro 👨‍💼"])
         step_1(theme.split()[0])
+
 
 if __name__ == "__main__":
     main()
