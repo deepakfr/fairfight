@@ -78,13 +78,13 @@ def generate_whatsapp_link(phone, msg):
 def step_1(theme):
     st.subheader(f"1️⃣ {theme} Conflict - Step 1: User 1")
 
-    user1_name = st.text_input("🧑 User 1 Name")
+    user1_name = st.text_input(" User 1 Name")
     user1_email = st.text_input("📧 User 1 Email")
     user1_phone = st.text_input("📱 User 1 WhatsApp")
-    user2_name = st.text_input("👩 User 2 Name")
+    user2_name = st.text_input(" User 2 Name")
     user2_email = st.text_input("📧 User 2 Email")
     user2_phone = st.text_input("📱 User 2 WhatsApp")
-    user1_input = st.text_area("🧑 Describe your version")
+    user1_input = st.text_area(" Describe your version")
 
     if st.button("📤 Generate link and send to User 2"):
         if not all([user1_name.strip(), user1_email.strip(), user2_name.strip(), user2_email.strip(), user1_input.strip()]):
@@ -152,15 +152,17 @@ def step_2(data):
     user1_input_decoded = safe_base64_decode(data['user1_input'])
 
     st.markdown("---")
-    st.markdown(f"**🧑 {data['user1_name']} said:**")
+    st.markdown(f"** {data['user1_name']} said:**")
     st.info(user1_input_decoded)
 
-    user2_input = st.text_area(f"👩 {data['user2_name']}, your version")
+    user2_input = st.text_area(f" {data['user2_name']}, your version")
 
     if st.button("🧠 Get Verdict from JudgeBot"):
-        with st.spinner("JudgeBot is thinking..."):
+        with st.spinner("⚖️ JudgeBot is reviewing the arguments..."):
+            time.sleep(1.5)
             verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
             save_verdict(data['theme'], data['user1_name'], data['user2_name'], user1_input_decoded, user2_input, verdict)
+
 
             st.success("✅ Verdict delivered!")
 
