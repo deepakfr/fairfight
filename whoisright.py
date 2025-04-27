@@ -132,7 +132,6 @@ Click to share your version and get JudgeBot's verdict:
             whatsapp_link = generate_whatsapp_link(user2_phone, msg)
             st.markdown(f"[📲 WhatsApp to {user2_name}]({whatsapp_link})", unsafe_allow_html=True)
 
-
 # 🧾 Step 2 – User 2 responds
 def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
@@ -166,9 +165,6 @@ def step_2(data):
 
             st.success("✅ Verdict delivered!")
 
-            # Display JudgeBot logo
-            st.image("judgebot_logo.png", width=150)
-
             st.markdown("### ⚖️ **JudgeBot says:**")
             st.info(f"👩‍⚖️ **After carefully analyzing both sides, here is the fair verdict:**\n\n{verdict}")
 
@@ -193,6 +189,7 @@ def step_2(data):
 
             st.markdown("---")
 
+# 🏠 Main entry point
 def main():
     st.set_page_config(page_title="FairFight AI", page_icon="⚖️")
     st.title("🤖 FairFight AI")
@@ -208,9 +205,6 @@ def main():
     else:
         theme = st.selectbox("Choose a conflict type:", ["Couple 💔", "Friends 🎭", "Pro 👨‍💼"])
         step_1(theme.split()[0])
-
-
-
 
 if __name__ == "__main__":
     main()
