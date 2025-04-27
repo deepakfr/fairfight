@@ -153,7 +153,19 @@ def safe_base64_decode(encoded_str):
 # 🧾 Step 2 – User 2 responds
 def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
-    user1_input_decoded = safe_base64_decode(data['user1_input'])
+
+    def safe_base64_decode(encoded_str):
+        padding_needed = 4 - (len(encoded_str) % 4)
+        if padding_needed and padding_needed != 4:
+            encoded_str += "=" * padding_needed
+        return base64.urlsafe_b64decode(encoded_str).decode()
+
+    try:
+        user1_input_decoded = safe_base64_decode(data['user1_input'])
+    except Exception as e:
+        st.error(f"❌ Error decoding input: {e}")
+        return
+
     st.markdown(f"**🧑 {data['user1_name']} said:**")
     st.info(user1_input_decoded)
 
@@ -179,6 +191,7 @@ def step_2(data):
                 st.markdown("### 🏆 Victory Margin")
                 st.progress(p1 / 100.0, f"{data['user1_name']}: {p1}%")
                 st.progress(p2 / 100.0, f"{data['user2_name']}: {p2}%")
+
 
 
 # 🏠 Main entry point
