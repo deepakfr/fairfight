@@ -3,8 +3,8 @@ import openai
 import re
 import base64
 import json
-from urllib.parse import urlencode
 import urllib.parse
+from urllib.parse import urlencode
 from datetime import datetime
 
 # ✅ Groq API credentials
@@ -86,6 +86,10 @@ def step_1(theme):
             st.warning("⚠️ Please fill all required fields before generating the link.")
             return
 
+        if len(user1_input.strip()) < 5:
+            st.warning("⚠️ Please write a meaningful description (at least 5 characters) before generating the link.")
+            return
+
         raw_encoded_input = base64.urlsafe_b64encode(user1_input.encode()).decode()
         encoded_input = urllib.parse.quote(raw_encoded_input)
 
@@ -142,6 +146,7 @@ def step_2(data):
         user1_input_decoded = "[Error decoding User 1 input]"
         st.error(f"❌ Error decoding input: {e}")
 
+    st.markdown("---")
     st.markdown(f"**🧑 {data['user1_name']} said:**")
     st.info(user1_input_decoded)
 
@@ -151,9 +156,36 @@ def step_2(data):
         with st.spinner("JudgeBot is thinking..."):
             verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
             save_verdict(data['theme'], data['user1_name'], data['user2_name'], user1_input_decoded, user2_input, verdict)
+
             st.success("✅ Verdict delivered!")
-            st.markdown("### 🧑‍⚖️ JudgeBot says:")
-            st.markdown(verdict)
+
+            # --- Display Verdict Nicely ---
+            st.image("judgebot_logo.png", width=150)  # Logo added here!
+            st.markdown("### ⚖️ **JudgeBot says:**")
+            st.info(f"👩‍⚖️ **After carefully analyzing both sides, here is the fair verdict:**\n\n{verdict}")
+
+            # --- Victory Margin Bar ---
+            def extract_percentages(verdict_text, user1_name, user2_name):
+                pattern = rf"{re.escape(user1_name)}\s*[:\-]?\s*(\d{{1,3}})%.*?{re.escape(user2_name)}\s*[:\-]?\s*(\d{{1,3}})%"
+                match = re.search(pattern, verdict_text, re.IGNORECASE)
+                if match:
+                    return int(match.group(1)), int(match.group(2))
+
+                pattern_rev = rf"{re.escape(user2_name)}\s*[:\-]?\s*(\d{{1,3}})%.*?{re.escape(user1_name)}\s*[:\-]?\s*(\d{{1,3}})%"
+                match = re.search(pattern_rev, verdict_text, re.IGNORECASE)
+                if match:
+                    return int(match.group(2)), int(match.group(1))
+
+                return None, None
+
+            p1, p2 = extract_percentages(verdict, data['user1_name'], data['user2_name'])
+            if p1 is not None and p2 is not None:
+                st.markdown("---")
+                st.markdown("### 🏆 **Victory Margin:**")
+                st.progress(p1 / 100.0, f"{data['user1_name']}: {p1}%")
+                st.progress(p2 / 100.0, f"{data['user2_name']}: {p2}%")
+
+            st.markdown("---")
 
 # 🏠 Main entry point
 def main():
