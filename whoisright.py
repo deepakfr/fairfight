@@ -125,10 +125,22 @@ Click to share your version and get JudgeBot's verdict:
             st.markdown(f"[📲 WhatsApp to {user2_name}]({whatsapp_link})", unsafe_allow_html=True)
 
 # 🧾 Step 2 – User 2 responds
+# 🧾 Step 2 – User 2 responds
 def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
 
-    user1_input_decoded = base64.urlsafe_b64decode(data['user1_input']).decode()
+    # Safe Base64 decoding with padding fix
+    def safe_base64_decode(encoded_str):
+        padding_needed = 4 - (len(encoded_str) % 4)
+        if padding_needed and padding_needed != 4:
+            encoded_str += "=" * padding_needed
+        return base64.urlsafe_b64decode(encoded_str).decode()
+
+    try:
+        user1_input_decoded = safe_base64_decode(data['user1_input'])
+    except Exception as e:
+        st.error(f"❌ Error decoding input: {e}")
+        return
 
     st.markdown(f"**🧑 {data['user1_name']} said:**")
     st.info(user1_input_decoded)
@@ -136,10 +148,13 @@ def step_2(data):
     user2_input = st.text_area(f"👩 {data['user2_name']}, your version")
 
     if st.button("🧠 Get Verdict from JudgeBot"):
-        verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
-        save_verdict(data['theme'], data['user1_name'], data['user2_name'], user1_input_decoded, user2_input, verdict)
-        st.success("✅ Verdict delivered!")
-        st.markdown(verdict)
+        with st.spinner("JudgeBot is thinking..."):
+            verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
+            save_verdict(data['theme'], data['user1_name'], data['user2_name'], user1_input_decoded, user2_input, verdict)
+            st.success("✅ Verdict delivered!")
+            st.markdown("### 🧑‍⚖️ JudgeBot says:")
+            st.markdown(verdict)
+
 
 # 🏠 Main entry point
 def main():
