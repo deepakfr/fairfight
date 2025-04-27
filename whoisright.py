@@ -125,22 +125,21 @@ Click to share your version and get JudgeBot's verdict:
             st.markdown(f"[📲 WhatsApp to {user2_name}]({whatsapp_link})", unsafe_allow_html=True)
 
 # 🧾 Step 2 – User 2 responds
-# 🧾 Step 2 – User 2 responds
 def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
 
-    # Safe Base64 decoding with padding fix
+    # Safe Base64 decoding
     def safe_base64_decode(encoded_str):
         padding_needed = 4 - (len(encoded_str) % 4)
         if padding_needed and padding_needed != 4:
             encoded_str += "=" * padding_needed
-        return base64.urlsafe_b64decode(encoded_str).decode()
+        return base64.urlsafe_b64decode(encoded_str.encode()).decode()
 
     try:
         user1_input_decoded = safe_base64_decode(data['user1_input'])
     except Exception as e:
+        user1_input_decoded = "[Error decoding User 1 input]"
         st.error(f"❌ Error decoding input: {e}")
-        return
 
     st.markdown(f"**🧑 {data['user1_name']} said:**")
     st.info(user1_input_decoded)
@@ -154,7 +153,6 @@ def step_2(data):
             st.success("✅ Verdict delivered!")
             st.markdown("### 🧑‍⚖️ JudgeBot says:")
             st.markdown(verdict)
-
 
 # 🏠 Main entry point
 def main():
