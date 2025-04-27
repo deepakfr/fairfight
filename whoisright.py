@@ -141,14 +141,19 @@ Click to share your version and get JudgeBot's verdict:
             whatsapp_link = generate_whatsapp_link(user2_phone, msg)
             st.markdown(f"[📲 WhatsApp to {user2_name}]({whatsapp_link})", unsafe_allow_html=True)
 
+def safe_base64_decode(encoded_str):
+    padding_needed = 4 - (len(encoded_str) % 4)
+    if padding_needed and padding_needed != 4:
+        encoded_str += "=" * padding_needed
+    return base64.urlsafe_b64decode(encoded_str).decode()
+
+# Then in step_2:
 
 # 🧾 Step 2 – User 2 responds
 # 🧾 Step 2 – User 2 responds
 def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
-
-    user1_input_decoded = base64.urlsafe_b64decode(data['user1_input']).decode()
-
+    user1_input_decoded = safe_base64_decode(data['user1_input'])
     st.markdown(f"**🧑 {data['user1_name']} said:**")
     st.info(user1_input_decoded)
 
