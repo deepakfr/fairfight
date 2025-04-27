@@ -90,8 +90,11 @@ def step_1(theme):
             st.warning("⚠️ Please write a meaningful description (at least 5 characters) before generating the link.")
             return
 
+        # First: base64 encode the input
         raw_encoded_input = base64.urlsafe_b64encode(user1_input.encode()).decode()
-        encoded_input = urllib.parse.quote(raw_encoded_input)
+
+        # Then: URL encode it safely
+        encoded_input = urllib.parse.quote_plus(raw_encoded_input)
 
         params = urlencode({
             "step": "2",
@@ -129,22 +132,26 @@ Click to share your version and get JudgeBot's verdict:
             whatsapp_link = generate_whatsapp_link(user2_phone, msg)
             st.markdown(f"[📲 WhatsApp to {user2_name}]({whatsapp_link})", unsafe_allow_html=True)
 
+
 # 🧾 Step 2 – User 2 responds
 def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
 
     def safe_base64_decode(encoded_str):
-        encoded_str = urllib.parse.unquote(encoded_str)
-        padding_needed = 4 - (len(encoded_str) % 4)
-        if padding_needed and padding_needed != 4:
-            encoded_str += "=" * padding_needed
-        return base64.urlsafe_b64decode(encoded_str.encode()).decode()
+        try:
+            # First URL-decode
+            encoded_str = urllib.parse.unquote_plus(encoded_str)
 
-    try:
-        user1_input_decoded = safe_base64_decode(data['user1_input'])
-    except Exception as e:
-        user1_input_decoded = "[Error decoding User 1 input]"
-        st.error(f"❌ Error decoding input: {e}")
+            # Fix padding for base64
+            padding_needed = 4 - (len(encoded_str) % 4)
+            if padding_needed and padding_needed != 4:
+                encoded_str += "=" * padding_needed
+
+            return base64.urlsafe_b64decode(encoded_str.encode()).decode()
+        except Exception as e:
+            return f"[Error decoding User 1 input: {str(e)}]"
+
+    user1_input_decoded = safe_base64_decode(data['user1_input'])
 
     st.markdown("---")
     st.markdown(f"**🧑 {data['user1_name']} said:**")
@@ -159,23 +166,22 @@ def step_2(data):
 
             st.success("✅ Verdict delivered!")
 
-            # --- Display Verdict Nicely ---
-            st.image("judgebot_logo.png", width=150)  # Logo added here!
+            # Display JudgeBot logo
+            st.image("judgebot_logo.png", width=150)
+
             st.markdown("### ⚖️ **JudgeBot says:**")
             st.info(f"👩‍⚖️ **After carefully analyzing both sides, here is the fair verdict:**\n\n{verdict}")
 
-            # --- Victory Margin Bar ---
+            # Display Victory Margin
             def extract_percentages(verdict_text, user1_name, user2_name):
                 pattern = rf"{re.escape(user1_name)}\s*[:\-]?\s*(\d{{1,3}})%.*?{re.escape(user2_name)}\s*[:\-]?\s*(\d{{1,3}})%"
                 match = re.search(pattern, verdict_text, re.IGNORECASE)
                 if match:
                     return int(match.group(1)), int(match.group(2))
-
                 pattern_rev = rf"{re.escape(user2_name)}\s*[:\-]?\s*(\d{{1,3}})%.*?{re.escape(user1_name)}\s*[:\-]?\s*(\d{{1,3}})%"
                 match = re.search(pattern_rev, verdict_text, re.IGNORECASE)
                 if match:
                     return int(match.group(2)), int(match.group(1))
-
                 return None, None
 
             p1, p2 = extract_percentages(verdict, data['user1_name'], data['user2_name'])
@@ -187,22 +193,6 @@ def step_2(data):
 
             st.markdown("---")
 
-# 🏠 Main entry point
-def main():
-    st.set_page_config(page_title="FairFight AI", page_icon="⚖️")
-    st.title("🤖 FairFight AI")
-    st.caption("Because every conflict deserves a fair verdict.")
-
-    query = st.query_params
-    step = query.get("step", ["1"])[0]
-
-    if step == "2":
-        keys = ["theme", "user1_name", "user2_name", "user1_input", "user1_email", "user2_email", "user1_phone", "user2_phone"]
-        data = {k: query.get(k, [""])[0] for k in keys}
-        step_2(data)
-    else:
-        theme = st.selectbox("Choose a conflict type:", ["Couple 💔", "Friends 🎭", "Pro 👨‍💼"])
-        step_1(theme.split()[0])
 
 if __name__ == "__main__":
     main()
