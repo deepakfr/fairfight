@@ -70,19 +70,17 @@ def extract_percentages(verdict_text, user1_name, user2_name):
 
     return None, None
 
-
-import urllib.parse
-
+# 📤 WhatsApp link
 def generate_whatsapp_link(phone, msg):
     phone = phone.replace("+", "").replace("-", "").replace(" ", "")
-    msg = urllib.parse.quote(msg)
+    msg = msg.replace(" ", "%20").replace("\n", "%0A")
     return f"https://wa.me/{phone}?text={msg}"
 
+# 📧 Email link
 def generate_mailto_link(email, subject, body):
-    subject = urllib.parse.quote(subject)
-    body = urllib.parse.quote(body)
+    subject = subject.replace(" ", "%20")
+    body = body.replace(" ", "%20").replace("\n", "%0A")
     return f"mailto:{email}?subject={subject}&body={body}"
-
 
 # 🔁 Step 1 – User 1 inputs
 def step_1(theme):
@@ -105,7 +103,7 @@ def step_1(theme):
 
         params = urlencode({
             "step": "2",
-            "theme": theme.split()[0],
+            "theme": theme,
             "user1_name": user1_name,
             "user2_name": user2_name,
             "user1_input": encoded_input,
@@ -115,6 +113,7 @@ def step_1(theme):
             "user2_phone": user2_phone,
         })
 
+        # ✅ Update this after deployment
         BASE_URL = "https://fairfight.streamlit.app"
         share_link = f"{BASE_URL}/?{params}"
 
@@ -126,7 +125,7 @@ def step_1(theme):
 
 Click to share your version and get JudgeBot's verdict:
 
-{share_link}
+🔗 {share_link}
 
 🤖 FairFight AI"""
 
@@ -134,37 +133,18 @@ Click to share your version and get JudgeBot's verdict:
         st.code(share_link)
 
         if user2_email:
-            email_link = generate_mailto_link(user2_email, 'FairFight Conflict', msg)
-            st.markdown(f"[📧 Email to {user2_name}]({email_link})", unsafe_allow_html=True)
-
+            st.markdown(f"[📧 Email to {user2_name}]({generate_mailto_link(user2_email, 'FairFight Conflict', msg)})", unsafe_allow_html=True)
         if user2_phone:
-            whatsapp_link = generate_whatsapp_link(user2_phone, msg)
-            st.markdown(f"[📲 WhatsApp to {user2_name}]({whatsapp_link})", unsafe_allow_html=True)
+            st.markdown(f"[📲 WhatsApp to {user2_name}]({generate_whatsapp_link(user2_phone, msg)})", unsafe_allow_html=True)
 
-def safe_base64_decode(encoded_str):
-    padding_needed = 4 - (len(encoded_str) % 4)
-    if padding_needed and padding_needed != 4:
-        encoded_str += "=" * padding_needed
-    return base64.urlsafe_b64decode(encoded_str).decode()
-
-# Then in step_2:
-
-# 🧾 Step 2 – User 2 responds
 # 🧾 Step 2 – User 2 responds
 def step_2(data):
     st.subheader(f"2️⃣ {data['theme']} Conflict - Step 2: {data['user2_name']} Responds")
 
-    def safe_base64_decode(encoded_str):
-        padding_needed = 4 - (len(encoded_str) % 4)
-        if padding_needed and padding_needed != 4:
-            encoded_str += "=" * padding_needed
-        return base64.urlsafe_b64decode(encoded_str).decode()
-
     try:
-        user1_input_decoded = safe_base64_decode(data['user1_input'])
-    except Exception as e:
-        st.error(f"❌ Error decoding input: {e}")
-        return
+        user1_input_decoded = base64.urlsafe_b64decode(data['user1_input'].encode()).decode()
+    except Exception:
+        user1_input_decoded = "[Error decoding User 1 input]"
 
     st.markdown(f"**🧑 {data['user1_name']} said:**")
     st.info(user1_input_decoded)
@@ -192,8 +172,6 @@ def step_2(data):
                 st.progress(p1 / 100.0, f"{data['user1_name']}: {p1}%")
                 st.progress(p2 / 100.0, f"{data['user2_name']}: {p2}%")
 
-
-
 # 🏠 Main entry point
 def main():
     st.set_page_config(page_title="FairFight AI", page_icon="⚖️")
@@ -210,7 +188,6 @@ def main():
     else:
         theme = st.selectbox("Choose a conflict type:", ["Couple 💔", "Friends 🎭", "Pro 👨‍💼"])
         step_1(theme.split()[0])
-
 
 if __name__ == "__main__":
     main()
