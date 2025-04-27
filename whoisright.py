@@ -193,6 +193,24 @@ def step_2(data):
 
             st.markdown("---")
 
+def main():
+    st.set_page_config(page_title="FairFight AI", page_icon="⚖️")
+    st.title("🤖 FairFight AI")
+    st.caption("Because every conflict deserves a fair verdict.")
+
+    query = st.query_params
+    step = query.get("step", ["1"])[0]
+
+    if step == "2":
+        keys = ["theme", "user1_name", "user2_name", "user1_input", "user1_email", "user2_email", "user1_phone", "user2_phone"]
+        data = {k: query.get(k, [""])[0] for k in keys}
+        step_2(data)
+    else:
+        theme = st.selectbox("Choose a conflict type:", ["Couple 💔", "Friends 🎭", "Pro 👨‍💼"])
+        step_1(theme.split()[0])
+
+
+
 
 if __name__ == "__main__":
     main()
