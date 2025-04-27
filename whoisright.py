@@ -4,7 +4,6 @@ import re
 import base64
 import json
 import urllib.parse
-import time
 from urllib.parse import urlencode
 from datetime import datetime
 
@@ -33,13 +32,9 @@ def save_verdict(theme, user1_name, user2_name, user1_input, user2_input, verdic
 # 🧠 Analyze conflict
 def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
     system_prompt = (
-        f"You are JudgeBot, an unbiased but witty AI Judge specializing in {theme.lower()} conflicts. "
-        "You must listen carefully to both sides, think logically like a real judge, and issue a fair but fun judgment. "
-        "In your answer:\n"
-        "- Start like a real court decision (Example: 'Upon reviewing the evidence...')\n"
-        "- Highlight who is more reasonable and briefly why.\n"
-        "- End with a clear win percentage (Example: Deepak wins 60% vs Dhinesh 40%).\n"
-        "- Keep it formal but light, no harsh words."
+        f"You are JudgeBot, an unbiased AI judge for {theme.lower()} conflicts. "
+        "Analyze both sides, highlight key points, and give a fair verdict. "
+        "Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
     )
 
     messages = [
@@ -48,7 +43,7 @@ def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
             "role": "user",
             "content": f"{user1_name} says:\n{user1_input}\n\n"
                        f"{user2_name} says:\n{user2_input}\n\n"
-                       f"Please provide your verdict now, in a formal but simple style.",
+                       f"Who is more reasonable and why? Show the win percentage too.",
         },
     ]
 
@@ -95,8 +90,10 @@ def step_1(theme):
             st.warning("⚠️ Please write a meaningful description (at least 5 characters) before generating the link.")
             return
 
-        # Base64 encode input
+        # First: base64 encode the input
         raw_encoded_input = base64.urlsafe_b64encode(user1_input.encode()).decode()
+
+        # Then: URL encode it safely
         encoded_input = urllib.parse.quote_plus(raw_encoded_input)
 
         params = urlencode({
@@ -141,10 +138,14 @@ def step_2(data):
 
     def safe_base64_decode(encoded_str):
         try:
+            # First URL-decode
             encoded_str = urllib.parse.unquote_plus(encoded_str)
+
+            # Fix padding for base64
             padding_needed = 4 - (len(encoded_str) % 4)
             if padding_needed and padding_needed != 4:
                 encoded_str += "=" * padding_needed
+
             return base64.urlsafe_b64decode(encoded_str.encode()).decode()
         except Exception as e:
             return f"[Error decoding User 1 input: {str(e)}]"
@@ -164,17 +165,10 @@ def step_2(data):
 
             st.success("✅ Verdict delivered!")
 
-            # Show JudgeBot logo
-            st.image("/mnt/data/ChatGPT Image Apr 27, 2025, 02_47_11 AM.png", width=150)
+            st.markdown("### ⚖️ **JudgeBot says:**")
+            st.info(f"👩‍⚖️ **After carefully analyzing both sides, here is the fair verdict:**\n\n{verdict}")
 
-            # JudgeBot speaking animation
-            st.markdown("### 👩‍⚖️ **JudgeBot is delivering the verdict...**")
-            time.sleep(1.5)
-
-            # Verdict display
-            st.success(f"👩‍⚖️ **JudgeBot's Verdict:**\n\n{verdict}")
-
-            # Show victory margin
+            # Display Victory Margin
             def extract_percentages(verdict_text, user1_name, user2_name):
                 pattern = rf"{re.escape(user1_name)}\s*[:\-]?\s*(\d{{1,3}})%.*?{re.escape(user2_name)}\s*[:\-]?\s*(\d{{1,3}})%"
                 match = re.search(pattern, verdict_text, re.IGNORECASE)
@@ -187,17 +181,11 @@ def step_2(data):
                 return None, None
 
             p1, p2 = extract_percentages(verdict, data['user1_name'], data['user2_name'])
-
             if p1 is not None and p2 is not None:
                 st.markdown("---")
                 st.markdown("### 🏆 **Victory Margin:**")
-                st.markdown(f"**{data['user1_name']}**: {p1}%")
-                st.progress(p1 / 100)
-                st.markdown(f"**{data['user2_name']}**: {p2}%")
-                st.progress(p2 / 100)
-
-                winner = data['user1_name'] if p1 > p2 else data['user2_name']
-                st.success(f"🏆 **Winner:** {winner} 🥳")
+                st.progress(p1 / 100.0, f"{data['user1_name']}: {p1}%")
+                st.progress(p2 / 100.0, f"{data['user2_name']}: {p2}%")
 
             st.markdown("---")
 
@@ -207,7 +195,7 @@ def main():
     st.title("🤖 FairFight AI")
     st.caption("Because every conflict deserves a fair verdict.")
 
-    query = st.experimental_get_query_params()
+    query = st.experimental_get_query_params()  # <-- THIS FIX
     step = query.get("step", ["1"])[0]
 
     if step == "2":
