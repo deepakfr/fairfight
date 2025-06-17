@@ -44,11 +44,12 @@ def generate_whatsapp_link(phone, msg):
     return f"https://wa.me/{phone}?text={msg}"
 
 # 🧠 Analyze conflict
-def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name, lang_instruction):
+def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
     system_prompt = (
         f"You are JudgeBot, an unbiased AI judge for {theme.lower()} conflicts. "
-        "Analyze both sides, highlight key points, and give a fair verdict. "
-        f"{lang_instruction} Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
+        "You must detect the language used by the participants and answer in the same language. "
+        "Analyze both sides carefully, highlight key arguments from each party, and give a fair, neutral verdict. "
+        "Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
     )
 
     messages = [
@@ -136,27 +137,16 @@ def step_2(data):
     st.info(user1_input_decoded)
 
     user2_input = st.text_area(f"👩 {data['user2_name']}, your version")
-    language = st.selectbox("🌐 Choose response language", [
-        "Auto-detect", "English", "French", "Spanish", "German", "Arabic", "Hindi", "Chinese", "Russian", "Portuguese"
-    ])
-
-    lang_instruction = "Respond in the same language as users." if language == "Auto-detect" else f"Respond in {language}."
-    lang_map = {
-        "English": "en", "French": "fr", "Spanish": "es", "German": "de", "Arabic": "ar",
-        "Hindi": "hi", "Chinese": "zh-cn", "Russian": "ru", "Portuguese": "pt"
-    }
-    speech_lang = lang_map.get(language, "en")
 
     if st.button("🧠 Get Verdict from JudgeBot"):
-        verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'], lang_instruction)
+        verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
         save_verdict(data['theme'], data['user1_name'], data['user2_name'], user1_input_decoded, user2_input, verdict)
 
         st.success("✅ Verdict delivered!")
         st.markdown(verdict)
 
-        # 🔊 Generate audio from verdict
         try:
-            tts = gTTS(text=verdict, lang=speech_lang)
+            tts = gTTS(text=verdict)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
                 temp_audio_path = fp.name
                 tts.save(temp_audio_path)
@@ -164,7 +154,6 @@ def step_2(data):
         except Exception as e:
             st.warning(f"🔈 Could not generate speech: {e}")
 
-        # ✅ Notify User 1
         msg = f"""Hello {data['user1_name']},
 
 🎯 The conflict between you and {data['user2_name']} has been analyzed by JudgeBot.
