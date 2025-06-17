@@ -3,9 +3,11 @@ import openai
 import re
 import base64
 import json
-from urllib.parse import urlencode
 import urllib.parse
+from urllib.parse import urlencode
 from datetime import datetime
+from gtts import gTTS
+import tempfile
 
 # ✅ Groq API credentials
 openai.api_key = "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"
@@ -29,12 +31,24 @@ def save_verdict(theme, user1_name, user2_name, user1_input, user2_input, verdic
     except Exception as e:
         print("Error saving verdict:", e)
 
+# 📧 Email link
+def generate_mailto_link(email, subject, body):
+    subject = urllib.parse.quote(subject)
+    body = urllib.parse.quote(body)
+    return f"mailto:{email}?subject={subject}&body={body}"
+
+# 📤 WhatsApp link
+def generate_whatsapp_link(phone, msg):
+    phone = phone.replace("+", "").replace("-", "").replace(" ", "")
+    msg = urllib.parse.quote(msg)
+    return f"https://wa.me/{phone}?text={msg}"
+
 # 🧠 Analyze conflict
-def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
+def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name, lang_instruction):
     system_prompt = (
         f"You are JudgeBot, an unbiased AI judge for {theme.lower()} conflicts. "
         "Analyze both sides, highlight key points, and give a fair verdict. "
-        "Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
+        f"{lang_instruction} Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
     )
 
     messages = [
@@ -56,18 +70,6 @@ def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
         return response.choices[0].message.content
     except Exception as e:
         return f"❌ Error: {e}"
-
-# 📧 Email link
-def generate_mailto_link(email, subject, body):
-    subject = urllib.parse.quote(subject)
-    body = urllib.parse.quote(body)
-    return f"mailto:{email}?subject={subject}&body={body}"
-
-# 📤 WhatsApp link
-def generate_whatsapp_link(phone, msg):
-    phone = phone.replace("+", "").replace("-", "").replace(" ", "")
-    msg = urllib.parse.quote(msg)
-    return f"https://wa.me/{phone}?text={msg}"
 
 # 🔁 Step 1 – User 1 inputs
 def step_1(theme):
@@ -134,12 +136,51 @@ def step_2(data):
     st.info(user1_input_decoded)
 
     user2_input = st.text_area(f"👩 {data['user2_name']}, your version")
+    language = st.selectbox("🌐 Choose response language", [
+        "Auto-detect", "English", "French", "Spanish", "German", "Arabic", "Hindi", "Chinese", "Russian", "Portuguese"
+    ])
+
+    lang_instruction = "Respond in the same language as users." if language == "Auto-detect" else f"Respond in {language}."
+    lang_map = {
+        "English": "en", "French": "fr", "Spanish": "es", "German": "de", "Arabic": "ar",
+        "Hindi": "hi", "Chinese": "zh-cn", "Russian": "ru", "Portuguese": "pt"
+    }
+    speech_lang = lang_map.get(language, "en")
 
     if st.button("🧠 Get Verdict from JudgeBot"):
-        verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
+        verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'], lang_instruction)
         save_verdict(data['theme'], data['user1_name'], data['user2_name'], user1_input_decoded, user2_input, verdict)
+
         st.success("✅ Verdict delivered!")
         st.markdown(verdict)
+
+        # 🔊 Generate audio from verdict
+        try:
+            tts = gTTS(text=verdict, lang=speech_lang)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+                temp_audio_path = fp.name
+                tts.save(temp_audio_path)
+            st.audio(temp_audio_path, format="audio/mp3")
+        except Exception as e:
+            st.warning(f"🔈 Could not generate speech: {e}")
+
+        # ✅ Notify User 1
+        msg = f"""Hello {data['user1_name']},
+
+🎯 The conflict between you and {data['user2_name']} has been analyzed by JudgeBot.
+
+Here is the verdict:
+{verdict}
+
+🤖 FairFight AI – Objective Conflict Resolution"""
+
+        if data['user1_email']:
+            email_link = generate_mailto_link(data['user1_email'], "FairFight AI Verdict", msg)
+            st.markdown(f"[📧 Notify {data['user1_name']} by Email]({email_link})", unsafe_allow_html=True)
+
+        if data['user1_phone']:
+            whatsapp_link = generate_whatsapp_link(data['user1_phone'], msg)
+            st.markdown(f"[📲 Notify {data['user1_name']} on WhatsApp]({whatsapp_link})", unsafe_allow_html=True)
 
 # 🏠 Main entry point
 def main():
