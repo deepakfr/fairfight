@@ -46,10 +46,10 @@ def generate_whatsapp_link(phone, msg):
 # 🧠 Analyze conflict
 def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
     system_prompt = (
-        f"You are JudgeBot, an unbiased AI judge for {theme.lower()} conflicts. "
-        "You must detect the language used by the participants and answer in the same language. "
-        "Analyze both sides carefully, highlight key arguments from each party, and give a fair, neutral verdict. "
-        "Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
+    f"You are JudgeBot, an unbiased AI judge for {theme.lower()} conflicts. "
+    "You must detect the dominant language used in the participants' messages (e.g., English, French, Hindi, Arabic, Spanish, etc.) and provide your full response in that language. "
+    "Analyze both sides carefully, highlight key arguments from each party, and give a fair, neutral verdict. "
+    "Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
     )
 
     messages = [
