@@ -13,7 +13,7 @@ from deep_translator import GoogleTranslator
 
 DetectorFactory.seed = 0
 
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+openai.api_key = st.secrets["api_key"]
 openai.api_base = "https://api.openai.com/v1"
 
 # ✅ Save verdicts to local JSON file
