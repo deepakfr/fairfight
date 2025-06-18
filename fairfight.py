@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 from datetime import datetime
 from gtts import gTTS
 import tempfile
+from langdetect import detect
 
 # ✅ Groq API credentials
 openai.api_key = "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"
@@ -45,11 +46,16 @@ def generate_whatsapp_link(phone, msg):
 
 # 🧠 Analyze conflict
 def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
+    try:
+        detected_lang = detect(user1_input + " " + user2_input)
+    except:
+        detected_lang = "en"
+
     system_prompt = (
-    f"You are JudgeBot, an unbiased AI judge for {theme.lower()} conflicts. "
-    "You must detect the dominant language used in the participants' messages (e.g., English, French, Hindi, Arabic, Spanish, etc.) and provide your full response in that language. "
-    "Analyze both sides carefully, highlight key arguments from each party, and give a fair, neutral verdict. "
-    "Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
+        f"You are JudgeBot, an unbiased AI judge for {theme.lower()} conflicts. "
+        f"Respond only in this language: {detected_lang}. "
+        "Analyze both sides carefully, highlight key arguments from each party, and give a fair, neutral verdict. "
+        "Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
     )
 
     messages = [
@@ -68,9 +74,9 @@ def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
             messages=messages,
             temperature=0.7,
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content, detected_lang
     except Exception as e:
-        return f"❌ Error: {e}"
+        return f"❌ Error: {e}", "en"
 
 # 🔁 Step 1 – User 1 inputs
 def step_1(theme):
@@ -139,14 +145,14 @@ def step_2(data):
     user2_input = st.text_area(f"👩 {data['user2_name']}, your version")
 
     if st.button("🧠 Get Verdict from JudgeBot"):
-        verdict = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
+        verdict, detected_lang = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
         save_verdict(data['theme'], data['user1_name'], data['user2_name'], user1_input_decoded, user2_input, verdict)
 
         st.success("✅ Verdict delivered!")
         st.markdown(verdict)
 
         try:
-            tts = gTTS(text=verdict)
+            tts = gTTS(text=verdict, lang=detected_lang)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
                 temp_audio_path = fp.name
                 tts.save(temp_audio_path)
