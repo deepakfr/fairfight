@@ -10,8 +10,9 @@ from gtts import gTTS
 import tempfile
 from langdetect import detect
 
-# ✅ OpenAI API credentials (you must have a valid OpenAI API key)
-openai.api_key = "sk-REPLACE_WITH_YOUR_KEY"
+import os
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 # ✅ Map language codes to full names for clarity in prompts
 LANG_NAME_MAP = {
