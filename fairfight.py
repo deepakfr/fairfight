@@ -10,11 +10,11 @@ from gtts import gTTS
 import tempfile
 from langdetect import detect
 
+# ✅ OpenAI API credentials (store securely)
 import os
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-
-# ✅ Map language codes to full names for clarity in prompts
+# ✅ Language name map for prompt clarity
 LANG_NAME_MAP = {
     "en": "English", "fr": "French", "es": "Spanish", "de": "German", "ar": "Arabic",
     "hi": "Hindi", "zh-cn": "Chinese", "pt": "Portuguese", "ru": "Russian"
@@ -61,9 +61,9 @@ def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
 
     system_prompt = (
         f"You are JudgeBot, an unbiased AI judge for {theme.lower()} conflicts. "
-        f"You must respond only in {lang_name}. "
-        "Analyze both sides carefully, highlight key arguments from each party, and give a fair, neutral verdict. "
-        "Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
+        f"You must respond strictly and fully in {lang_name}. "
+        "You will analyze both sides, highlight key arguments, and provide a fair, structured verdict. "
+        "Clearly indicate who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
     )
 
     messages = [
@@ -72,9 +72,18 @@ def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
             "role": "user",
             "content": f"{user1_name} says:\n{user1_input}\n\n"
                        f"{user2_name} says:\n{user2_input}\n\n"
-                       f"Please give your verdict in {lang_name}. Who is more reasonable and why? Show the win percentage too.",
-        },
+                       f"Please give your verdict in {lang_name}."
+        }
     ]
+
+    # Add priming example if language is French (extendable)
+    if lang_name == "French":
+        messages.insert(1, {
+            "role": "user",
+            "content": "Voici un exemple de verdict attendu en français :\n\n"
+                       "👩‍⚖️ Après avoir analysé les arguments des deux parties, voici mon verdict...\n"
+                       "Merci de répondre uniquement en français."
+        })
 
     try:
         response = openai.ChatCompletion.create(
