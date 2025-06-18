@@ -8,17 +8,13 @@ from urllib.parse import urlencode
 from datetime import datetime
 from gtts import gTTS
 import tempfile
-from langdetect import detect
+from langdetect import detect, DetectorFactory
+from deep_translator import GoogleTranslator
 
-# ✅ OpenAI API credentials (store securely)
-import os
-openai.api_key = os.getenv("OPENAI_API_KEY")
+DetectorFactory.seed = 0
 
-# ✅ Language name map for prompt clarity
-LANG_NAME_MAP = {
-    "en": "English", "fr": "French", "es": "Spanish", "de": "German", "ar": "Arabic",
-    "hi": "Hindi", "zh-cn": "Chinese", "pt": "Portuguese", "ru": "Russian"
-}
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+openai.api_base = "https://api.openai.com/v1"
 
 # ✅ Save verdicts to local JSON file
 def save_verdict(theme, user1_name, user2_name, user1_input, user2_input, verdict, **kwargs):
@@ -50,48 +46,37 @@ def generate_whatsapp_link(phone, msg):
     msg = urllib.parse.quote(msg)
     return f"https://wa.me/{phone}?text={msg}"
 
-# 🧠 Analyze conflict
+# 🧠 Analyze conflict with auto-language
+
 def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
     try:
-        detected_lang = detect(user1_input + " " + user2_input)
-    except:
-        detected_lang = "en"
+        combined = user1_input + " " + user2_input
+        lang_code = detect(combined)
 
-    lang_name = LANG_NAME_MAP.get(detected_lang, "English")
+        system_instruction = (
+            "You are JudgeBot, an impartial AI judge. Analyze both sides carefully, highlight key arguments from each, "
+            "and give a fair verdict. Clearly state who is more reasonable, and give a win percentage (e.g., 60% vs 40%)."
+        )
 
-    system_prompt = (
-        f"You are JudgeBot, an unbiased AI judge for {theme.lower()} conflicts. "
-        f"You must respond strictly and fully in {lang_name}. "
-        "You will analyze both sides, highlight key arguments, and provide a fair, structured verdict. "
-        "Clearly indicate who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
-    )
+        system_instruction_translated = GoogleTranslator(source='en', target=lang_code).translate(system_instruction)
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": f"{user1_name} says:\n{user1_input}\n\n"
-                       f"{user2_name} says:\n{user2_input}\n\n"
-                       f"Please give your verdict in {lang_name}."
-        }
-    ]
+        messages = [
+            {"role": "system", "content": system_instruction_translated},
+            {
+                "role": "user",
+                "content": f"{user1_name} dice:\n{user1_input}\n\n"
+                           f"{user2_name} dice:\n{user2_input}\n\n"
+                           f"¿Quién es más razonable y por qué? Da un porcentaje de victoria también.",
+            },
+        ]
 
-    # Add priming example if language is French (extendable)
-    if lang_name == "French":
-        messages.insert(1, {
-            "role": "user",
-            "content": "Voici un exemple de verdict attendu en français :\n\n"
-                       "👩‍⚖️ Après avoir analysé les arguments des deux parties, voici mon verdict...\n"
-                       "Merci de répondre uniquement en français."
-        })
-
-    try:
         response = openai.ChatCompletion.create(
             model="gpt-4o",
             messages=messages,
             temperature=0.7,
         )
-        return response.choices[0].message.content, detected_lang
+
+        return response.choices[0].message.content, lang_code
     except Exception as e:
         return f"❌ Error: {e}", "en"
 
@@ -130,15 +115,7 @@ def step_1(theme):
         share_link = f"{BASE_URL}/?{params}"
 
         st.success("✅ Link generated!")
-        msg = f"""Hello {user2_name},
-
-{user1_name} has submitted a conflict on FairFight AI.
-
-Click to share your version and get JudgeBot's verdict:
-
-{share_link}
-
-🤖 FairFight AI"""
+        msg = f"""Hello {user2_name},\n\n{user1_name} has submitted a conflict on FairFight AI.\n\nClick to share your version and get JudgeBot's verdict:\n\n{share_link}\n\n🤖 FairFight AI"""
 
         st.code(share_link)
 
@@ -162,29 +139,21 @@ def step_2(data):
     user2_input = st.text_area(f"👩 {data['user2_name']}, your version")
 
     if st.button("🧠 Get Verdict from JudgeBot"):
-        verdict, detected_lang = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
+        verdict, lang_code = analyze_conflict(user1_input_decoded, user2_input, data['theme'], data['user1_name'], data['user2_name'])
         save_verdict(data['theme'], data['user1_name'], data['user2_name'], user1_input_decoded, user2_input, verdict)
 
         st.success("✅ Verdict delivered!")
         st.markdown(verdict)
 
         try:
-            tts = gTTS(text=verdict, lang=detected_lang)
+            tts = gTTS(text=verdict, lang=lang_code)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
-                temp_audio_path = fp.name
-                tts.save(temp_audio_path)
-            st.audio(temp_audio_path, format="audio/mp3")
+                tts.save(fp.name)
+                st.audio(fp.name, format="audio/mp3")
         except Exception as e:
             st.warning(f"🔈 Could not generate speech: {e}")
 
-        msg = f"""Hello {data['user1_name']},
-
-🎯 The conflict between you and {data['user2_name']} has been analyzed by JudgeBot.
-
-Here is the verdict:
-{verdict}
-
-🤖 FairFight AI – Objective Conflict Resolution"""
+        msg = f"""Hello {data['user1_name']},\n\n🎯 The conflict between you and {data['user2_name']} has been analyzed by JudgeBot.\n\nHere is the verdict:\n{verdict}\n\n🤖 FairFight AI – Objective Conflict Resolution"""
 
         if data['user1_email']:
             email_link = generate_mailto_link(data['user1_email'], "FairFight AI Verdict", msg)
