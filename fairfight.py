@@ -56,6 +56,7 @@ def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
         system_instruction = (
             "You are JudgeBot, an impartial AI judge. Analyze both sides carefully, highlight key arguments from each, "
             "and give a fair verdict. Clearly state who is more reasonable, and give a win percentage (e.g., 60% vs 40%)."
+            "You should give the response in the user texted language"
         )
 
         system_instruction_translated = GoogleTranslator(source='en', target=lang_code).translate(system_instruction)
