@@ -10,9 +10,14 @@ from gtts import gTTS
 import tempfile
 from langdetect import detect
 
-# ✅ Groq API credentials
-openai.api_key = "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"
-openai.api_base = "https://api.groq.com/openai/v1"
+# ✅ OpenAI API credentials (you must have a valid OpenAI API key)
+openai.api_key = "sk-REPLACE_WITH_YOUR_KEY"
+
+# ✅ Map language codes to full names for clarity in prompts
+LANG_NAME_MAP = {
+    "en": "English", "fr": "French", "es": "Spanish", "de": "German", "ar": "Arabic",
+    "hi": "Hindi", "zh-cn": "Chinese", "pt": "Portuguese", "ru": "Russian"
+}
 
 # ✅ Save verdicts to local JSON file
 def save_verdict(theme, user1_name, user2_name, user1_input, user2_input, verdict, **kwargs):
@@ -51,9 +56,11 @@ def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
     except:
         detected_lang = "en"
 
+    lang_name = LANG_NAME_MAP.get(detected_lang, "English")
+
     system_prompt = (
         f"You are JudgeBot, an unbiased AI judge for {theme.lower()} conflicts. "
-        f"Respond only in this language: {detected_lang}. "
+        f"You must respond only in {lang_name}. "
         "Analyze both sides carefully, highlight key arguments from each party, and give a fair, neutral verdict. "
         "Clearly state who is more reasonable and provide a win percentage (e.g., 60% vs 40%)."
     )
@@ -64,13 +71,13 @@ def analyze_conflict(user1_input, user2_input, theme, user1_name, user2_name):
             "role": "user",
             "content": f"{user1_name} says:\n{user1_input}\n\n"
                        f"{user2_name} says:\n{user2_input}\n\n"
-                       f"Who is more reasonable and why? Show the win percentage too.",
+                       f"Please give your verdict in {lang_name}. Who is more reasonable and why? Show the win percentage too.",
         },
     ]
 
     try:
         response = openai.ChatCompletion.create(
-            model="llama3-8b-8192",
+            model="gpt-4o",
             messages=messages,
             temperature=0.7,
         )
