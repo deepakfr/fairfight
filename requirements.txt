@@ -1,0 +1,6 @@
+streamlit
+openai==0.28
+psycopg2-binary
+gTTS
+langdetect
+deep-translator
